@@ -208,6 +208,20 @@
         .roster-item.dragging { opacity: 0.4; }
         .roster-item.drag-over { border: 2px dashed var(--accent); background: rgba(251,191,36,0.2); }
 
+        /* ===== 選手ソースバー（記録画面 STEP1）＆ メンバー表切替 ===== */
+        .player-source-bar { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+        .psb-label { font-size: 0.85rem; color: var(--text-sub, #94a3b8); font-weight: bold; }
+        .psb-select { padding: 6px 8px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-panel); color: var(--text-main); font-size: 0.9rem; font-weight: bold; }
+        #roster-context { margin: 4px 0 14px; }
+        .ros-ctx-title { font-size: 0.9rem; color: var(--text-main); margin-bottom: 8px; font-weight: bold; }
+        .ros-preset-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+        .ros-preset-chip { padding: 6px 12px; border-radius: 16px; border: 1px solid var(--border-color); background: var(--bg-element); color: var(--text-main); font-size: 0.85rem; cursor: pointer; }
+        .ros-preset-chip.active { background: var(--accent); color: var(--bg-base); border-color: var(--accent); font-weight: bold; }
+        .ros-preset-add { padding: 6px 12px; border-radius: 16px; border: 1px dashed var(--accent); background: none; color: var(--accent); font-size: 0.85rem; cursor: pointer; font-weight: bold; }
+        .ros-preset-tools { display: flex; gap: 10px; }
+        .ros-preset-tools button { background: none; border: none; color: var(--accent); font-size: 0.8rem; cursor: pointer; text-decoration: underline; padding: 0; }
+        .player-empty-hint { font-size: 0.85rem; color: var(--text-sub, #94a3b8); padding: 10px 0; }
+
         /* ===== スマホ縦画面 対応（横幅640px以下） ===== */
         /* iPad/PCの「スクロールしない横並び固定」レイアウトを、
            スマホでは「縦に積んで画面全体をスクロール」に切り替える。 */
@@ -363,7 +377,7 @@
                     <button class="btn btn-position" onclick="selectPlayer('右４５')" style="flex: 1; padding: 12px 2px; font-size: 0.85rem;">右４５</button>
                     <button class="btn btn-position" onclick="selectPlayer('右サイド')" style="flex: 1; padding: 12px 2px; font-size: 0.85rem;">右サイド</button>
                 </div>
-                <div class="panel-sub-title" style="margin-bottom: 8px;">登録選手</div>
+                <div id="player-source-bar" class="player-source-bar" style="margin-bottom: 8px;"></div>
                 <div id="player-buttons"></div>
             </div>
 
@@ -700,8 +714,8 @@
 <div id="view-info" class="main-container">
     <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 15px; padding: 30px;">
         <h1 style="color: var(--accent); margin: 0; font-family: 'Oswald', sans-serif; letter-spacing: 2px; font-size: 2.5rem;">分析くん by Danno</h1>
-        <div style="color: var(--text-sub); font-size: 1.2rem;">Ver. 2.4.0</div>
-        <div style="color: var(--text-sub); font-size: 0.8rem; text-align: center;">最終更新: 2026-07-22<br>スマートフォン縦画面に対応（画面幅に合わせて自動で縦積みレイアウトに切替）</div>
+        <div style="color: var(--text-sub); font-size: 1.2rem;">Ver. 2.5.0</div>
+        <div style="color: var(--text-sub); font-size: 0.8rem; text-align: center;">最終更新: 2026-07-23<br>自チームは複数の登録メンバー表を切替可能に。相手選手は対戦校ごとに保存し、同じ学校を選ぶと自動表示。未登録の学校は背番号のみ(#2〜#16)を初期表示（背番号だけ・名前だけでも登録OK）</div>
     </div>
 </div>
 
@@ -710,10 +724,11 @@
      ========================================================= -->
 <div class="modal-overlay" id="roster-modal">
     <div class="modal-content">
-        <h2 style="margin-top:0; color:var(--accent);">選手 登録・編集</h2>
+        <h2 id="roster-modal-title" style="margin-top:0; color:var(--accent);">選手 登録・編集</h2>
+        <div id="roster-context"></div>
         <div style="display:flex; gap:8px; margin-bottom:15px;">
-            <input type="text" id="ros-num" placeholder="背番号" style="width:70px; padding:10px; border-radius:4px; border:1px solid #ccc; font-size:1rem;">
-            <input type="text" id="ros-name" placeholder="選手名" style="flex:1; padding:10px; border-radius:4px; border:1px solid #ccc; font-size:1rem;">
+            <input type="text" id="ros-num" placeholder="背番号(任意)" style="width:90px; padding:10px; border-radius:4px; border:1px solid #ccc; font-size:1rem;">
+            <input type="text" id="ros-name" placeholder="選手名(任意)" style="flex:1; padding:10px; border-radius:4px; border:1px solid #ccc; font-size:1rem;">
             <button class="btn" style="padding:10px 15px;" onclick="addRosterPlayer()">追加</button>
         </div>
         <div class="roster-grid" id="roster-list-box"></div>
@@ -761,7 +776,69 @@
     // 0. 選手登録機能 (PCドラッグ & iPadタッチ対応)
     // ==========================================
     let defaultRoster = [{n:'2', nm:''},{n:'3', nm:''},{n:'4', nm:''},{n:'5', nm:''},{n:'6', nm:''},{n:'7', nm:''},{n:'8', nm:''},{n:'9', nm:''},{n:'10', nm:''},{n:'11', nm:''},{n:'12', nm:''},{n:'13', nm:''},{n:'14', nm:''},{n:'15', nm:''},{n:'16', nm:''}];
-    let teamRoster = JSON.parse(localStorage.getItem('handball_roster')) || defaultRoster;
+
+    // ---- 自チーム：複数の登録メンバー表（切替式） ----
+    // 保存形式: { active: 0, list: [ {name:'メンバー1', players:[{n,nm},...]}, ... ] }
+    function loadSelfPresets() {
+        let raw = localStorage.getItem('handball_roster_presets');
+        if (raw) {
+            try { let o = JSON.parse(raw); if (o && Array.isArray(o.list) && o.list.length) return o; } catch(e) {}
+        }
+        // 旧データ(handball_roster=1つの配列)からの引き継ぎ
+        let old = null;
+        try { old = JSON.parse(localStorage.getItem('handball_roster')); } catch(e) {}
+        let players = Array.isArray(old) ? old : JSON.parse(JSON.stringify(defaultRoster));
+        return { active: 0, list: [ { name: 'メンバー1', players: players } ] };
+    }
+    let selfPresets = loadSelfPresets();
+    function saveSelfPresets() { localStorage.setItem('handball_roster_presets', JSON.stringify(selfPresets)); }
+    function activeSelfRoster() {
+        if (selfPresets.active < 0 || selfPresets.active >= selfPresets.list.length) selfPresets.active = 0;
+        return selfPresets.list[selfPresets.active].players;
+    }
+
+    // ---- 相手：学校名ごとの選手表 ----
+    // 保存形式: { "青山学院": [{n,nm},...], "麻布": [...], ... }
+    let opponentRosters = {};
+    try { opponentRosters = JSON.parse(localStorage.getItem('handball_opponent_rosters')) || {}; } catch(e) { opponentRosters = {}; }
+    function saveOpponentRosters() { localStorage.setItem('handball_opponent_rosters', JSON.stringify(opponentRosters)); }
+    function currentOpponentName() { return (document.getElementById('opponent-name').value || '').trim(); }
+    function opponentRosterFor(name) {
+        if (!name) return [];
+        if (!Array.isArray(opponentRosters[name])) opponentRosters[name] = [];
+        return opponentRosters[name];
+    }
+    // まだ登録がない学校は、初期値として背番号のみ(#2〜#16)を並べる
+    function ensureOpponentDefault(name) {
+        if (!name) return [];
+        let arr = opponentRosterFor(name);
+        if (arr.length === 0) {
+            opponentRosters[name] = JSON.parse(JSON.stringify(defaultRoster)); // 背番号のみ・名前は空
+            saveOpponentRosters();
+        }
+        return opponentRosters[name];
+    }
+
+    // ---- 記録画面の選手ボタンが「今どの表を出すか」 ----
+    function isOpponentContext() { return entry.team === '相手チーム'; }
+    function activeRosterForButtons() {
+        if (isOpponentContext()) {
+            const nm = currentOpponentName();
+            if (!nm) return [];
+            return ensureOpponentDefault(nm);
+        }
+        return activeSelfRoster();
+    }
+
+    // ---- モーダルで「今どの表を編集しているか」 ----
+    let rosterEdit = { isOpp: false, oppName: '' };
+    function editRosterArray() {
+        if (rosterEdit.isOpp) return opponentRosterFor(rosterEdit.oppName);
+        return activeSelfRoster();
+    }
+    function persistEditRoster() {
+        if (rosterEdit.isOpp) saveOpponentRosters(); else saveSelfPresets();
+    }
 
     // ==========================================
     // 0-2. 対戦校プリセット（カテゴリ別）
@@ -847,6 +924,8 @@
             btn.classList.remove('has-value');
         }
         closeOpponentPicker();
+        // 相手選手を記録中なら、その学校の登録選手を自動で並べ替える
+        renderPlayerButtons();
     }
 
     function confirmDirectOpponent() {
@@ -883,20 +962,119 @@
         renderOppChips();
     }
 
+    // 記録画面STEP1の上部：自チームはメンバー表の切替、相手は学校名を表示
+    function renderPlayerSourceBar() {
+        const bar = document.getElementById('player-source-bar');
+        if (!bar) return;
+        if (isOpponentContext()) {
+            const nm = currentOpponentName();
+            bar.innerHTML = nm
+                ? `<span class="psb-label">相手選手：<b style="color:var(--accent);">${nm}</b></span>`
+                : `<span class="psb-label" style="color:#94a3b8;">相手選手（「対戦校を選ぶ」と学校別に保存されます）</span>`;
+        } else {
+            let opts = selfPresets.list.map((p, i) =>
+                `<option value="${i}" ${i === selfPresets.active ? 'selected' : ''}>${p.name || ('メンバー' + (i + 1))}</option>`
+            ).join('');
+            bar.innerHTML = `<span class="psb-label">自チーム：</span><select class="psb-select" onchange="switchSelfPreset(this.value*1)">${opts}</select>`;
+        }
+    }
+
+    function playerLabel(p) {
+        if (p.n && p.nm) return `#${p.n} ${p.nm}`;
+        if (p.n) return `#${p.n}`;
+        return p.nm || '';
+    }
+
     function renderPlayerButtons() {
+        renderPlayerSourceBar();
         const pContainer = document.getElementById('player-buttons');
         pContainer.innerHTML = '';
-        teamRoster.forEach((p, idx) => {
+        const list = activeRosterForButtons();
+        if (list.length === 0) {
+            pContainer.innerHTML = isOpponentContext()
+                ? `<div class="player-empty-hint">「対戦校を選ぶ」で学校を選ぶと、背番号ボタン（#2〜#16）が初期表示されます。番号や名前は「選手登録・編集」で自由に変更でき、その学校ごとに保存されます。（ポジションボタンでも記録できます）</div>`
+                : `<div class="player-empty-hint">選手が登録されていません。「選手登録・編集」から追加してください。</div>`;
+            updateStepUI();
+            return;
+        }
+        list.forEach((p) => {
             let btn = document.createElement('button'); btn.className = 'btn btn-player';
-            btn.innerHTML = `<span class="num">#${p.n}</span><br><span class="name" style="font-size:0.75rem; font-weight:normal;">${p.nm}</span>`;
-            let val = p.nm ? `#${p.n} ${p.nm}` : `#${p.n}`;
+            let numHtml = p.n ? `#${p.n}` : '';
+            btn.innerHTML = `<span class="num">${numHtml}</span><br><span class="name" style="font-size:0.75rem; font-weight:normal;">${p.nm || ''}</span>`;
+            let val = playerLabel(p);
             btn.onclick = () => selectPlayer(val);
             pContainer.appendChild(btn);
         });
         updateStepUI();
     }
 
-    function openRosterModal() { document.getElementById('roster-modal').classList.add('show'); renderRosterList(); }
+    // ---- 自チーム メンバー表の切替・追加・改名・削除 ----
+    function switchSelfPreset(i) {
+        i = i * 1;
+        if (i < 0 || i >= selfPresets.list.length) return;
+        selfPresets.active = i;
+        saveSelfPresets();
+        if (document.getElementById('roster-context')) renderRosterContext();
+        renderRosterList();
+        renderPlayerButtons();
+    }
+    function addSelfPreset() {
+        let name = (prompt('新しいメンバー表の名前は？（例：Aチーム、公式戦、練習）', 'メンバー' + (selfPresets.list.length + 1)) || '').trim();
+        if (!name) return;
+        selfPresets.list.push({ name: name, players: JSON.parse(JSON.stringify(defaultRoster)) });
+        selfPresets.active = selfPresets.list.length - 1;
+        saveSelfPresets();
+        renderRosterContext(); renderRosterList(); renderPlayerButtons();
+    }
+    function renameSelfPreset() {
+        let cur = selfPresets.list[selfPresets.active];
+        let name = (prompt('メンバー表の名前', cur.name) || '').trim();
+        if (!name) return;
+        cur.name = name;
+        saveSelfPresets();
+        renderRosterContext(); renderPlayerButtons();
+    }
+    function deleteSelfPreset() {
+        if (selfPresets.list.length <= 1) { alert('メンバー表は最低1つ必要です。'); return; }
+        if (!confirm('「' + (selfPresets.list[selfPresets.active].name) + '」を削除しますか？')) return;
+        selfPresets.list.splice(selfPresets.active, 1);
+        if (selfPresets.active >= selfPresets.list.length) selfPresets.active = selfPresets.list.length - 1;
+        saveSelfPresets();
+        renderRosterContext(); renderRosterList(); renderPlayerButtons();
+    }
+
+    // モーダル上部：自チームはメンバー表チップ、相手は学校名を表示
+    function renderRosterContext() {
+        const box = document.getElementById('roster-context');
+        if (!box) return;
+        if (rosterEdit.isOpp) {
+            const nm = rosterEdit.oppName;
+            box.innerHTML = nm
+                ? `<div class="ros-ctx-title">相手選手：<b style="color:var(--accent);">${nm}</b>（この学校に保存され、次回自動で並びます）</div>`
+                : `<div class="ros-ctx-title" style="color:#e11d48;">先に「対戦校を選ぶ」で学校名を選んでください。相手選手は学校名ごとに保存されます。</div>`;
+            return;
+        }
+        let chips = selfPresets.list.map((p, i) =>
+            `<button class="ros-preset-chip ${i === selfPresets.active ? 'active' : ''}" onclick="switchSelfPreset(${i})">${p.name || ('メンバー' + (i + 1))}</button>`
+        ).join('');
+        box.innerHTML = `
+            <div class="ros-ctx-title">自チーム 登録メンバー表（切替できます）</div>
+            <div class="ros-preset-row">${chips}<button class="ros-preset-add" onclick="addSelfPreset()">＋新規</button></div>
+            <div class="ros-preset-tools">
+                <button onclick="renameSelfPreset()">名前を変更</button>
+                <button onclick="deleteSelfPreset()">この表を削除</button>
+            </div>`;
+    }
+
+    function openRosterModal() {
+        rosterEdit.isOpp = isOpponentContext();
+        rosterEdit.oppName = rosterEdit.isOpp ? currentOpponentName() : '';
+        if (rosterEdit.isOpp && rosterEdit.oppName) ensureOpponentDefault(rosterEdit.oppName);
+        document.getElementById('roster-modal-title').innerText = rosterEdit.isOpp ? '相手選手 登録・編集' : '自チーム 選手 登録・編集';
+        document.getElementById('roster-modal').classList.add('show');
+        renderRosterContext();
+        renderRosterList();
+    }
     function closeRosterModal() { document.getElementById('roster-modal').classList.remove('show'); }
     
     // --- ドラッグ&ドロップ用変数と関数 (PC用) ---
@@ -920,11 +1098,10 @@
         if (dragSrcEl !== this) {
             let fromIdx = parseInt(dragSrcEl.dataset.index);
             let toIdx = parseInt(this.dataset.index);
-            
-            let movedItem = teamRoster.splice(fromIdx, 1)[0];
-            teamRoster.splice(toIdx, 0, movedItem);
-            
-            localStorage.setItem('handball_roster', JSON.stringify(teamRoster));
+            let arr = editRosterArray();
+            let movedItem = arr.splice(fromIdx, 1)[0];
+            arr.splice(toIdx, 0, movedItem);
+            persistEditRoster();
             renderRosterList();
             renderPlayerButtons();
         }
@@ -973,11 +1150,10 @@
             if (dropTarget && dropTarget !== touchSrcEl) {
                 let fromIdx = parseInt(touchSrcEl.dataset.index);
                 let toIdx = parseInt(dropTarget.dataset.index);
-                
-                let movedItem = teamRoster.splice(fromIdx, 1)[0];
-                teamRoster.splice(toIdx, 0, movedItem);
-                
-                localStorage.setItem('handball_roster', JSON.stringify(teamRoster));
+                let arr = editRosterArray();
+                let movedItem = arr.splice(fromIdx, 1)[0];
+                arr.splice(toIdx, 0, movedItem);
+                persistEditRoster();
                 renderRosterList();
                 renderPlayerButtons();
             }
@@ -987,13 +1163,16 @@
 
     function renderRosterList() {
         const box = document.getElementById('roster-list-box'); box.innerHTML = '';
-        teamRoster.forEach((p, idx) => {
-            let item = document.createElement('div'); 
+        const list = editRosterArray();
+        if (rosterEdit.isOpp && !rosterEdit.oppName) return;
+        list.forEach((p, idx) => {
+            let item = document.createElement('div');
             item.className = 'roster-item';
-            item.draggable = true; 
+            item.draggable = true;
             item.dataset.index = idx;
-            
-            item.innerHTML = `<div style="font-weight:bold; color:var(--accent); pointer-events:none;">#${p.n}</div><div style="font-size:0.75rem; overflow:hidden; white-space:nowrap; pointer-events:none;">${p.nm||'未登録'}</div><button class="roster-del" onclick="deleteRoster(${idx})">×</button>`;
+            let topLine = p.n ? `#${p.n}` : '―';
+            let nameLine = p.nm || (p.n ? '未登録' : '');
+            item.innerHTML = `<div style="font-weight:bold; color:var(--accent); pointer-events:none;">${topLine}</div><div style="font-size:0.75rem; overflow:hidden; white-space:nowrap; pointer-events:none;">${nameLine}</div><button class="roster-del" onclick="deleteRoster(${idx})">×</button>`;
             
             item.addEventListener('dragstart', handleDragStart, false);
             item.addEventListener('dragenter', handleDragEnter, false);
@@ -1011,18 +1190,19 @@
     }
 
     function addRosterPlayer() {
+        if (rosterEdit.isOpp && !rosterEdit.oppName) { alert('先に「対戦校を選ぶ」で学校名を選んでください。'); return; }
         let num = document.getElementById('ros-num').value.trim();
         let name = document.getElementById('ros-name').value.trim();
-        if(!num) return alert('背番号を入力してください');
-        teamRoster.push({n: num, nm: name});
-        localStorage.setItem('handball_roster', JSON.stringify(teamRoster));
+        if(!num && !name) return alert('背番号か選手名のどちらか（または両方）を入力してください');
+        editRosterArray().push({n: num, nm: name});
+        persistEditRoster();
         document.getElementById('ros-num').value = ''; document.getElementById('ros-name').value = '';
         renderRosterList(); renderPlayerButtons();
     }
 
     function deleteRoster(idx) {
-        teamRoster.splice(idx, 1);
-        localStorage.setItem('handball_roster', JSON.stringify(teamRoster));
+        editRosterArray().splice(idx, 1);
+        persistEditRoster();
         renderRosterList(); renderPlayerButtons();
     }
 
@@ -1082,7 +1262,7 @@
         
         entry.player = null; entry.course = null; entry.result = null;
         currentStep = 1;
-        updateStepUI(); 
+        renderPlayerButtons();
         generateDashboardInsight();
     }
 
@@ -1188,8 +1368,10 @@
         if (activeView) activeView.classList.add('active');
 
         document.querySelectorAll('#player-buttons .btn').forEach(b => {
-            let btnTxt = b.querySelector('.num').innerText.replace('#','') + (b.querySelector('.name').innerText ? ' '+b.querySelector('.name').innerText : '');
-            let entTxt = entry.player ? entry.player.replace('#','') : '';
+            let numT = (b.querySelector('.num') ? b.querySelector('.num').innerText : '').replace('#','').trim();
+            let nameT = (b.querySelector('.name') ? b.querySelector('.name').innerText : '').trim();
+            let btnTxt = (numT && nameT) ? (numT + ' ' + nameT) : (numT || nameT);
+            let entTxt = entry.player ? entry.player.replace('#','').trim() : '';
             b.classList.toggle('active', btnTxt === entTxt);
         });
 
