@@ -207,6 +207,66 @@
         .roster-item[draggable="true"] { cursor: grab; touch-action: none; }
         .roster-item.dragging { opacity: 0.4; }
         .roster-item.drag-over { border: 2px dashed var(--accent); background: rgba(251,191,36,0.2); }
+
+        /* ===== スマホ縦画面 対応（横幅640px以下） ===== */
+        /* iPad/PCの「スクロールしない横並び固定」レイアウトを、
+           スマホでは「縦に積んで画面全体をスクロール」に切り替える。 */
+        @media (max-width: 640px) {
+            body { height: auto; min-height: 100vh; overflow-x: hidden; overflow-y: auto; }
+
+            /* 左タブは細く・上に固定して常に見えるように */
+            .sidebar { position: sticky; top: 0; align-self: flex-start; width: 46px; height: 100vh; padding-top: 8px; gap: 6px; }
+            .tab-btn { padding: 14px 0; font-size: 1rem; letter-spacing: 2px; }
+
+            /* 各ビューを縦積み＋高さ自動（固定100vhをやめる） */
+            .main-container { height: auto; min-height: 100vh; padding: 8px; gap: 12px; min-width: 0; }
+            .main-container.active-view { flex-direction: column; }
+
+            /* --- 記録画面 --- */
+            .left-col, .right-col { max-width: none; flex: none; width: 100%; overflow: visible; }
+            .match-meta { flex-wrap: wrap; }
+            .input-stage { flex: none; overflow: visible; }
+            .step-view.active { height: auto; }
+            /* 選手・コート・ゴールの横並びを縦積みに */
+            .stage-layout-combined { flex-direction: column; flex: none; min-height: 0; }
+            .combined-panel { flex: none; }
+            .svg-court-container, .svg-goal-container { max-height: 260px; }
+            #player-buttons { overflow: visible; }
+            #player-buttons .btn-player { flex: 1 1 calc(25% - 6px); }
+
+            /* 記録画面 右パネル（ダッシュボード） */
+            .dashboard-top-row { height: auto; flex-direction: column; flex-shrink: 1; }
+            .dashboard-card { overflow: visible; }
+            .insight-list { overflow: visible; }
+            .dashboard-heatmap-area { flex: none; overflow: visible; }
+            .heatmap-flex-container { flex-direction: column; flex: none; min-height: 0; }
+            .mini-heatmap-container { min-height: 230px; }
+            .mini-court-heatmap { min-height: 230px; }
+
+            /* --- 分析画面 --- */
+            .analysis-full-view { flex-direction: column; height: auto; overflow: visible; min-width: 0; }
+            .analysis-left, .analysis-right { flex: none; height: auto; overflow: visible; min-width: 0; }
+            .table-wrapper { flex: none; min-height: 0; min-width: 0; overflow: visible; }
+            .table-inner-scroll { overflow-x: auto; }
+            .running-score-wrapper { flex: none; max-height: 60vh; }
+
+            /* --- データ管理画面 --- */
+            #view-data > div { overflow: visible; }
+            #view-data > div > div { height: auto; }
+
+            /* モーダルは画面内に収める */
+            .modal-content { width: 94%; max-height: 88vh; overflow-y: auto; }
+            .roster-grid { grid-template-columns: repeat(3, 1fr); }
+
+            /* 見出し・表の不自然な折り返し対策 */
+            .stage-title { font-size: 0.92rem; }
+            /* 「見出し＋操作ボタン」の横並びは、狭いと操作ボタンを下へ回す
+               （見出しに幅が戻るので、途中改行が起きなくなる） */
+            .main-container [style*="space-between"] { flex-wrap: wrap; row-gap: 6px; }
+            /* 詳細テーブルは列見出しを途中改行させず、横スクロールで見せる */
+            table { font-size: 0.8rem; }
+            .table-inner-scroll th, .table-inner-scroll td { white-space: nowrap; }
+        }
     </style>
 <script type="text/javascript" nonce="22b67a5a6f044336af86aa87451" src="//local.adguard.org?ts=1784681839443&amp;type=content-script&amp;dmn=meiseiu-my.sharepoint.com&amp;url=https%3A%2F%2Fmeiseiu-my.sharepoint.com%2Fpersonal%2Fj213120_meisei-u_meisei-u_ac_jp%2F_layouts%2F15%2Fdownload.aspx%3FUniqueId%3D66f75e0f-4bc5-4852-adf6-af9540b6fb7f%26Translate%3Dfalse%26ApiVersion%3D2.0&amp;app=chrome.exe&amp;css=3&amp;js=1&amp;rel=1&amp;rji=1&amp;sbe=1"></script><script type="text/javascript" nonce="22b67a5a6f044336af86aa87451" src="//local.adguard.org?ts=1784681839443&amp;name=AdGuard%20Extra&amp;name=AdGuard%20Popup%20Blocker&amp;type=user-script"></script></head>
 <body class="theme-self">
@@ -640,8 +700,8 @@
 <div id="view-info" class="main-container">
     <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 15px; padding: 30px;">
         <h1 style="color: var(--accent); margin: 0; font-family: 'Oswald', sans-serif; letter-spacing: 2px; font-size: 2.5rem;">分析くん by Danno</h1>
-        <div style="color: var(--text-sub); font-size: 1.2rem;">Ver. 2.3.0</div>
-        <div style="color: var(--text-sub); font-size: 0.8rem; text-align: center;">最終更新: 2026-07-22<br>対戦校をカテゴリ（中学/高校・男子/女子）→プリセット→直接入力で選べるように（アプリ内で追加・削除も可能）</div>
+        <div style="color: var(--text-sub); font-size: 1.2rem;">Ver. 2.4.0</div>
+        <div style="color: var(--text-sub); font-size: 0.8rem; text-align: center;">最終更新: 2026-07-22<br>スマートフォン縦画面に対応（画面幅に合わせて自動で縦積みレイアウトに切替）</div>
     </div>
 </div>
 
