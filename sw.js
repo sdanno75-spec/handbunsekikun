@@ -2,7 +2,7 @@
 // このVERSIONを上げると、次回オンライン起動時に
 // アプリ画面に「新しいバージョンがあります」ボタンが出ます。
 // （更新は入力者がボタンを押したときだけ適用されます）
-const VERSION = '2.2.0';
+const VERSION = '2.3.0';
 const CACHE = 'bunsekikun-' + VERSION;
 const ASSETS = ['./', './index.html'];
 

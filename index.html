@@ -67,6 +67,31 @@
         .timer-btn { background: transparent; border: 1px solid #f59e0b; color: #f59e0b; padding: 2px 6px; border-radius: 4px; cursor: pointer; font-size: 0.75rem; }
         .timer-btn.running { background: #f59e0b; color: black; }
 
+        /* 対戦校ボタン（タップでピッカーを開く） */
+        .opponent-btn { flex: 1; min-width: 50px; background: var(--bg-panel); border: 1px dashed var(--border-color); color: var(--text-sub); padding: 6px 8px; border-radius: 6px; font-size: 0.9rem; font-weight: bold; cursor: pointer; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .opponent-btn.has-value { border-style: solid; border-color: var(--accent); color: var(--accent); }
+
+        /* 対戦校ピッカー モーダル */
+        .opp-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.65); z-index: 100000; display: flex; align-items: center; justify-content: center; padding: 16px; }
+        .opp-modal { background: var(--bg-panel); border: 1px solid var(--border-color); border-radius: 12px; width: 100%; max-width: 460px; max-height: 90vh; overflow-y: auto; padding: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.6); }
+        .opp-modal-head { display: flex; justify-content: space-between; align-items: center; font-size: 1.1rem; font-weight: bold; color: var(--accent); margin-bottom: 4px; }
+        .opp-close { background: transparent; border: none; color: var(--text-sub); font-size: 1.8rem; line-height: 1; cursor: pointer; padding: 0 6px; }
+        .opp-section-label { font-size: 0.8rem; font-weight: bold; color: var(--text-sub); margin: 14px 0 6px; display: flex; justify-content: space-between; align-items: center; }
+        .opp-cat-row { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+        .opp-cat { background: var(--bg-element); border: 1px solid var(--border-color); color: var(--text-main); padding: 12px 6px; border-radius: 6px; font-size: 0.95rem; font-weight: bold; cursor: pointer; transition: all 0.15s; }
+        .opp-cat.active { background: var(--accent); color: var(--bg-base); border-color: var(--accent); }
+        .opp-chips { display: flex; flex-wrap: wrap; gap: 8px; min-height: 44px; }
+        .opp-chip { background: var(--bg-element); border: 1px solid var(--border-color); color: var(--text-main); padding: 12px 14px; border-radius: 22px; font-size: 0.95rem; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: transform 0.1s; }
+        .opp-chip:active { transform: scale(0.95); }
+        .opp-chip .del { background: var(--danger); color: white; border: none; border-radius: 50%; width: 20px; height: 20px; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .opp-empty { font-size: 0.82rem; color: var(--text-sub); padding: 10px 2px; }
+        .opp-direct-row { display: flex; gap: 6px; }
+        .opp-direct-row input { flex: 1; background: var(--bg-base); border: 1px solid var(--border-color); color: var(--text-main); padding: 11px; border-radius: 6px; font-size: 0.95rem; }
+        .opp-direct-btn { background: var(--success); border: none; color: white; padding: 11px 18px; border-radius: 6px; font-weight: bold; cursor: pointer; white-space: nowrap; }
+        .opp-edit-toggle { background: transparent; border: 1px solid var(--border-color); color: var(--text-sub); padding: 4px 12px; border-radius: 6px; font-size: 0.75rem; font-weight: bold; cursor: pointer; }
+        .opp-edit-toggle.active { border-color: var(--accent); color: var(--accent); }
+        .opp-add-preset { width: 100%; background: transparent; border: 1px dashed var(--accent); color: var(--accent); padding: 11px; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 8px; font-size: 0.85rem; }
+
         /* チーム・局面選択 */
         .always-team-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; background: rgba(0,0,0,0.2); padding: 8px; border-radius: 8px; border: 1px solid var(--border-color); margin-bottom: 8px; }
         .team-block { display: flex; flex-direction: column; gap: 4px; }
@@ -204,7 +229,8 @@
     <!-- 左カラム (入力) -->
     <div class="left-col">
         <div class="match-meta">
-            <input type="text" id="opponent-name" placeholder="対戦校名">
+            <button type="button" id="opponent-btn" class="opponent-btn" onclick="openOpponentPicker()">対戦校を選ぶ</button>
+            <input type="hidden" id="opponent-name">
             <input type="date" id="match-date" style="width:130px; flex:none; background:var(--bg-panel); border:1px solid var(--border-color); color:var(--text-main); padding:6px; border-radius:6px; font-size:0.9rem;">
             <div class="score-box-mini font-score" id="input-match-score">0 - 0</div>
             <div class="timer-box">
@@ -614,8 +640,8 @@
 <div id="view-info" class="main-container">
     <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 15px; padding: 30px;">
         <h1 style="color: var(--accent); margin: 0; font-family: 'Oswald', sans-serif; letter-spacing: 2px; font-size: 2.5rem;">分析くん by Danno</h1>
-        <div style="color: var(--text-sub); font-size: 1.2rem;">Ver. 2.2.0</div>
-        <div style="color: var(--text-sub); font-size: 0.8rem; text-align: center;">最終更新: 2026-07-22<br>手動更新ボタン・オフライン対応（ホーム画面アプリ向け）を追加</div>
+        <div style="color: var(--text-sub); font-size: 1.2rem;">Ver. 2.3.0</div>
+        <div style="color: var(--text-sub); font-size: 0.8rem; text-align: center;">最終更新: 2026-07-22<br>対戦校をカテゴリ（中学/高校・男子/女子）→プリセット→直接入力で選べるように（アプリ内で追加・削除も可能）</div>
     </div>
 </div>
 
@@ -637,12 +663,165 @@
     </div>
 </div>
 
+<!-- =========================================================
+     対戦校ピッカー（カテゴリ→プリセット→直接入力）
+     ========================================================= -->
+<div id="opp-picker-overlay" class="opp-overlay" style="display:none;" onclick="if(event.target===this) closeOpponentPicker()">
+    <div class="opp-modal">
+        <div class="opp-modal-head">
+            <span>対戦校を選ぶ</span>
+            <button class="opp-close" onclick="closeOpponentPicker()">×</button>
+        </div>
+
+        <div class="opp-section-label">1. カテゴリを選ぶ</div>
+        <div class="opp-cat-row" id="opp-cat-row">
+            <button class="opp-cat" data-cat="中学男子" onclick="selectOppCategory('中学男子')">中学 男子</button>
+            <button class="opp-cat" data-cat="中学女子" onclick="selectOppCategory('中学女子')">中学 女子</button>
+            <button class="opp-cat" data-cat="高校男子" onclick="selectOppCategory('高校男子')">高校 男子</button>
+            <button class="opp-cat" data-cat="高校女子" onclick="selectOppCategory('高校女子')">高校 女子</button>
+        </div>
+
+        <div class="opp-section-label">
+            <span>2. チームを選ぶ</span>
+            <button class="opp-edit-toggle" id="opp-edit-toggle" onclick="toggleOppEdit()">編集</button>
+        </div>
+        <div class="opp-chips" id="opp-chips"></div>
+
+        <div class="opp-section-label">3. 一覧にない場合は直接入力</div>
+        <div class="opp-direct-row">
+            <input type="text" id="opp-direct-input" placeholder="チーム名を入力">
+            <button class="opp-direct-btn" onclick="confirmDirectOpponent()">この名前で決定</button>
+        </div>
+        <button class="opp-add-preset" id="opp-add-preset" onclick="addTypedToPreset()">＋ 入力したチームを「<span id="opp-add-cat">カテゴリ</span>」のプリセットに追加</button>
+    </div>
+</div>
+
 <script>
     // ==========================================
     // 0. 選手登録機能 (PCドラッグ & iPadタッチ対応)
     // ==========================================
     let defaultRoster = [{n:'2', nm:''},{n:'3', nm:''},{n:'4', nm:''},{n:'5', nm:''},{n:'6', nm:''},{n:'7', nm:''},{n:'8', nm:''},{n:'9', nm:''},{n:'10', nm:''},{n:'11', nm:''},{n:'12', nm:''},{n:'13', nm:''},{n:'14', nm:''},{n:'15', nm:''},{n:'16', nm:''}];
     let teamRoster = JSON.parse(localStorage.getItem('handball_roster')) || defaultRoster;
+
+    // ==========================================
+    // 0-2. 対戦校プリセット（カテゴリ別）
+    // ★ 初期チーム名を変えたい時はこの下のリストを書き換えてください。
+    //    （アプリ内の「編集」ボタンからも、追加・削除ができます）
+    // ==========================================
+    const DEFAULT_TEAM_PRESETS = {
+        '中学男子': ['青山学院', '秋多', '麻布', '有明', '稲城三', '青梅三', '大坂上ＨＣ', '開成', '学大小金井', '葛西三', '金町', '亀戸', '国立一', '佼成学園', '小平五', '狛江一', '小松', '桜堤', '鹿骨', '品川翔英', '城西大城西', '城北', '真光寺', '巣鴨', '青嵐', '千川', '多摩ＨＣ', 'つくし野', '筑波大附属駒場', '東京農大一', '獨協', '七生', '光が丘三', '東久留米西', '東久留米南', '平山', '府中ＨＣ', '府中四', '松江六', '御園・大森七', '武蔵村山五', '武蔵村山四', '早稲田実業', '和田'],
+        '中学女子': [],
+        '高校男子': [],
+        '高校女子': []
+    };
+    let teamPresets = JSON.parse(localStorage.getItem('handball_team_presets') || 'null') || JSON.parse(JSON.stringify(DEFAULT_TEAM_PRESETS));
+    // カテゴリを後から増やしても、保存済みデータに無ければ空で補う
+    Object.keys(DEFAULT_TEAM_PRESETS).forEach(k => { if (!Array.isArray(teamPresets[k])) teamPresets[k] = []; });
+
+    let currentOppCategory = localStorage.getItem('handball_opp_last_cat') || '高校男子';
+    let oppEditMode = false;
+
+    function saveTeamPresets() { localStorage.setItem('handball_team_presets', JSON.stringify(teamPresets)); }
+
+    function openOpponentPicker() {
+        oppEditMode = false;
+        document.getElementById('opp-edit-toggle').classList.remove('active');
+        document.getElementById('opp-edit-toggle').innerText = '編集';
+        // 直接入力欄に、現在選ばれている対戦校名を初期表示
+        document.getElementById('opp-direct-input').value = document.getElementById('opponent-name').value || '';
+        selectOppCategory(currentOppCategory);
+        document.getElementById('opp-picker-overlay').style.display = 'flex';
+    }
+
+    function closeOpponentPicker() {
+        document.getElementById('opp-picker-overlay').style.display = 'none';
+    }
+
+    function selectOppCategory(cat) {
+        currentOppCategory = cat;
+        localStorage.setItem('handball_opp_last_cat', cat);
+        document.querySelectorAll('#opp-cat-row .opp-cat').forEach(b => {
+            b.classList.toggle('active', b.dataset.cat === cat);
+        });
+        document.getElementById('opp-add-cat').innerText = cat;
+        renderOppChips();
+    }
+
+    function renderOppChips() {
+        const box = document.getElementById('opp-chips');
+        const list = teamPresets[currentOppCategory] || [];
+        if (list.length === 0) {
+            box.innerHTML = '<div class="opp-empty">このカテゴリの登録はまだありません。下で入力して「＋プリセットに追加」できます。</div>';
+            return;
+        }
+        box.innerHTML = '';
+        list.forEach(name => {
+            const chip = document.createElement('div');
+            chip.className = 'opp-chip';
+            const label = document.createElement('span');
+            label.innerText = name;
+            if (oppEditMode) {
+                const del = document.createElement('button');
+                del.className = 'del'; del.innerText = '×';
+                del.onclick = (e) => { e.stopPropagation(); deleteOppPreset(name); };
+                chip.appendChild(label);
+                chip.appendChild(del);
+                // 編集中はタップで選択させない（誤操作防止）
+            } else {
+                chip.appendChild(label);
+                chip.onclick = () => pickOpponent(name);
+            }
+            box.appendChild(chip);
+        });
+    }
+
+    function pickOpponent(name) {
+        const clean = (name || '').trim();
+        document.getElementById('opponent-name').value = clean;
+        const btn = document.getElementById('opponent-btn');
+        if (clean) {
+            btn.innerText = clean;
+            btn.classList.add('has-value');
+        } else {
+            btn.innerText = '対戦校を選ぶ';
+            btn.classList.remove('has-value');
+        }
+        closeOpponentPicker();
+    }
+
+    function confirmDirectOpponent() {
+        const v = document.getElementById('opp-direct-input').value.trim();
+        if (!v) { alert('チーム名を入力してください。'); return; }
+        pickOpponent(v);
+    }
+
+    function addTypedToPreset() {
+        const v = document.getElementById('opp-direct-input').value.trim();
+        if (!v) { alert('追加するチーム名を入力してください。'); return; }
+        if (!teamPresets[currentOppCategory]) teamPresets[currentOppCategory] = [];
+        if (teamPresets[currentOppCategory].includes(v)) {
+            alert('「' + v + '」は既に登録されています。');
+            return;
+        }
+        teamPresets[currentOppCategory].push(v);
+        saveTeamPresets();
+        renderOppChips();
+    }
+
+    function deleteOppPreset(name) {
+        if (!confirm('「' + name + '」をプリセットから削除しますか？')) return;
+        teamPresets[currentOppCategory] = (teamPresets[currentOppCategory] || []).filter(n => n !== name);
+        saveTeamPresets();
+        renderOppChips();
+    }
+
+    function toggleOppEdit() {
+        oppEditMode = !oppEditMode;
+        const t = document.getElementById('opp-edit-toggle');
+        t.classList.toggle('active', oppEditMode);
+        t.innerText = oppEditMode ? '完了' : '編集';
+        renderOppChips();
+    }
 
     function renderPlayerButtons() {
         const pContainer = document.getElementById('player-buttons');
