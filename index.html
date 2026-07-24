@@ -291,6 +291,24 @@
             table { font-size: 0.8rem; }
             .table-inner-scroll th, .table-inner-scroll td { white-space: nowrap; }
         }
+
+        /* 「記録を終了して次の試合へ」ボタン（安心して押せる緑系） */
+        .btn-next-match {
+            width: 100%;
+            background: linear-gradient(180deg, #fbbf24, #d99e1a);
+            border: 1px solid #fcd34d;
+            color: #042f2e;
+            font-weight: bold;
+            font-size: 0.95rem;
+            padding: 12px 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-bottom: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            transition: filter 0.15s;
+        }
+        .btn-next-match:hover { filter: brightness(1.12); }
+        .btn-next-match:active { filter: brightness(0.95); }
     </style>
 </head>
 <body class="theme-self">
@@ -484,6 +502,8 @@
     
     <!-- 右カラム (簡単分析ダッシュボード) -->
     <div class="right-col">
+        <!-- 1試合終わったら、ここから安全に次の試合へ（CSV保存→画面リセット） -->
+        <button class="btn-next-match" onclick="finishAndNextMatch()">記録を終了して、次の試合の記録をする</button>
         <!-- 上段：サマリー情報 -->
         <div class="dashboard-top-row">
             <div class="dashboard-card">
@@ -777,8 +797,8 @@
 <div id="view-info" class="main-container">
     <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 15px; padding: 30px;">
         <h1 style="color: var(--accent); margin: 0; font-family: 'Oswald', sans-serif; letter-spacing: 2px; font-size: 2.5rem;">分析くん by Danno</h1>
-        <div style="color: var(--text-sub); font-size: 1.2rem;">Ver. 2.7.0</div>
-        <div style="color: var(--text-sub); font-size: 0.8rem; text-align: center;">最終更新: 2026-07-24<br>名簿CSVを取り込むと、その学校が対戦校プリセット（今のカテゴリ）にも自動で入るようになりました。取り込み後すぐ、対戦校選びの一覧から選べます。</div>
+        <div style="color: var(--text-sub); font-size: 1.2rem;">Ver. 2.8.0</div>
+        <div style="color: var(--text-sub); font-size: 0.8rem; text-align: center;">最終更新: 2026-07-24<br>記録画面の右上に「記録を終了して、次の試合の記録をする」ボタンを追加。押すと今の試合をCSVに保存してから画面をリセットするので、「全削除」を使わなくても安全に次の試合へ進めます。</div>
     </div>
 </div>
 
@@ -2069,6 +2089,47 @@
             refreshAllViews();
             alert('データを完全にクリアしました。');
         }
+    }
+
+    // 1試合ごとの記録に。こわい「全削除」を使わずに次の試合へ進むためのボタン。
+    // いまの試合の記録をCSVに書き出して保存してから、記録画面をまっさらにする。
+    function finishAndNextMatch() {
+        let allData = JSON.parse(localStorage.getItem('handball_pro_dashboard_data')) || [];
+        if (allData.length === 0) {
+            alert('まだ記録がありません。\n記録を始めてから、このボタンを使ってください。');
+            return;
+        }
+        let oppEl  = document.getElementById('opponent-name');
+        let dateEl = document.getElementById('match-date');
+        let opp = (oppEl.value || '').trim();
+        let dt  = (dateEl.value || '').trim();
+        if (!confirm(
+            'いまの試合の記録をCSVファイルに保存してから、\n記録画面を「次の試合」用にまっさらにします。\n\n' +
+            '　対戦校：' + (opp || '未設定') + '\n' +
+            '　試合日：' + (dt  || '未設定') + '\n' +
+            '　記録数：' + allData.length + '件\n\n' +
+            '※記録はCSVで保存されるので、あとから見返せます。\n' +
+            'よろしいですか？'
+        )) return;
+
+        // 1) いまの記録をCSVで書き出し（バックアップ。これで消えても安心）
+        exportMatchCSV(allData, dt, opp);
+
+        // 2) 画面の記録データをクリア（次の試合と混ざらないように）
+        localStorage.removeItem('handball_pro_dashboard_data');
+
+        // 3) タイマー・局面・対戦校を次の試合用にリセット
+        clearInterval(timerInterval);
+        isTimerRunning = false;
+        timerSeconds = 0;
+        document.getElementById('timer-display').innerText = formatTime(timerSeconds);
+        let tbtn = document.getElementById('btn-timer');
+        tbtn.innerText = 'START'; tbtn.classList.remove('running');
+        setPeriod('前半');
+        pickOpponent('');           // 対戦校の選択をクリア（次の相手を選び直す）
+        resetToStep1();
+        refreshAllViews();
+        showNotification('保存しました。次の試合の記録を始められます');
     }
 
     // ==========================================
